@@ -2,8 +2,17 @@
 import { execSync } from 'node:child_process'
 import { copyFileSync, writeFileSync } from 'node:fs'
 
-const run = (cmd, cwd) => execSync(cmd, { cwd, stdio: 'inherit', env: { ...process.env, BASE_PATH: '/verdura/' } })
+const git = (key) => execSync(`git config ${key}`).toString().trim()
 const remote = execSync('git remote get-url origin').toString().trim()
+// O repositório temporário em dist/ usa a mesma identidade do repositório principal.
+const identity = {
+  GIT_AUTHOR_NAME: git('user.name'),
+  GIT_AUTHOR_EMAIL: git('user.email'),
+  GIT_COMMITTER_NAME: git('user.name'),
+  GIT_COMMITTER_EMAIL: git('user.email'),
+}
+const run = (cmd, cwd) =>
+  execSync(cmd, { cwd, stdio: 'inherit', env: { ...process.env, ...identity, BASE_PATH: '/verdura/' } })
 
 run('npm run build')
 // SPA no Pages: rotas diretas e refresh caem no 404.html, que carrega o mesmo app.
