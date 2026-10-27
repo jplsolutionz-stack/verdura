@@ -42,7 +42,7 @@ export function Home() {
 
 function ContentHero() {
   const navigate = useNavigate()
-  const { play, canPlay } = useIntro()
+  const { play } = useIntro()
   const id = useId()
   const [query, setQuery] = useState('')
 
@@ -81,11 +81,9 @@ function ContentHero() {
           />
           <figcaption>
             <span>Visualização arquitetônica conceitual.</span>
-            {canPlay && (
-              <button type="button" className="text-button" onClick={play}>
-                Ver a construção
-              </button>
-            )}
+            <button type="button" className="text-button" onClick={play}>
+              Ver a construção
+            </button>
           </figcaption>
         </figure>
       </div>

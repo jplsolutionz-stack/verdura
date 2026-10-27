@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
 import { IntroJourney } from './components/intro/IntroJourney'
@@ -43,20 +44,28 @@ function Shell() {
         Ir direto ao conteúdo
       </a>
       <Header />
-      {pathname === '/' && <IntroJourney />}
+      {/* Se a abertura falhar em algum aparelho, o site segue sem ela. */}
+      {pathname === '/' && (
+        <ErrorBoundary fallback={null} onError={() => complete()}>
+          <IntroJourney />
+        </ErrorBoundary>
+      )}
       {/* Durante a abertura o site fica fixo no topo, sob a fotografia: é ele que a porta revela. */}
       <div className="site" data-intro={active}>
         <main id="conteudo" tabIndex={-1}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/projetos" element={<Projects />} />
-            <Route path="/projetos/:slug" element={<ProjectDetail />} />
-            <Route path="/guia" element={<Guide />} />
-            <Route path="/guia/:slug" element={<ArticlePage />} />
-            <Route path="/salvos" element={<Saved />} />
-            <Route path="/sobre" element={<About />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <ErrorBoundary key={pathname} fallback={<PageError />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/index.html" element={<Navigate to="/" replace />} />
+              <Route path="/projetos" element={<Projects />} />
+              <Route path="/projetos/:slug" element={<ProjectDetail />} />
+              <Route path="/guia" element={<Guide />} />
+              <Route path="/guia/:slug" element={<ArticlePage />} />
+              <Route path="/salvos" element={<Saved />} />
+              <Route path="/sobre" element={<About />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ErrorBoundary>
         </main>
         <Footer />
       </div>
@@ -74,8 +83,28 @@ function ScrollManager({ active }: { active: boolean }) {
       // O efeito roda depois do commit: a seção já existe no DOM.
       document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView()
     } else {
-      window.scrollTo({ top: 0, behavior: 'instant' })
+      // Forma numérica: navegadores mais antigos rejeitam behavior: 'instant' com erro.
+      window.scrollTo(0, 0)
     }
   }, [pathname, hash, active])
   return null
+}
+
+function PageError() {
+  return (
+    <div className="page">
+      <div className="container empty-state empty-state--page">
+        <h1>Não foi possível mostrar esta página</h1>
+        <p className="lede">Recarregue a página ou continue por outro conteúdo.</p>
+        <div className="actions">
+          <a className="button" href={import.meta.env.BASE_URL}>
+            Recarregar o início
+          </a>
+          <Link className="text-link" to="/projetos">
+            Ver projetos
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
 }

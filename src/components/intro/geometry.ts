@@ -1,10 +1,14 @@
-import { DOOR_APERTURE, INTRO, REVEAL_EXPAND, REVEAL_OPEN, type Door } from '../../data/journey'
+import { DOOR_APERTURE, DOOR_FOCUS, INTRO, REVEAL_EXPAND, REVEAL_OPEN, type Door } from '../../data/journey'
 import { FRAME_RATIO } from '../../lib/media'
 
-export type Box = { width: number; height: number }
+/**
+ * Área das fotos (width/height, posição left/top dentro da abertura) e tamanho da abertura inteira.
+ * No desktop as fotos ocupam a tela; no celular em pé, uma faixa abaixo do cabeçalho.
+ */
+export type Box = { width: number; height: number; left: number; top: number; outerWidth: number; outerHeight: number }
 
-/** Moldura inicial da abertura, em px dentro da tela, mais o tamanho da tela. */
-export type Slot = Box & { left: number; top: number; right: number; bottom: number }
+/** Moldura inicial da abertura (só em telas largas), em px dentro da área das fotos. */
+export type Slot = { left: number; top: number; right: number; bottom: number }
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 const mix = (a: number, b: number, t: number) => a + (b - a) * t
@@ -13,35 +17,37 @@ const easeOut = (t: number) => 1 - (1 - t) ** 3
 const easeIn = (t: number) => t * t * t
 const phase = (p: number, [a, b]: [number, number]) => clamp01((p - a) / (b - a))
 
-/** Telas em retrato mostram o quadro inteiro (contain); as largas preenchem (cover). Igual ao CSS. */
-export const fitsContain = (box: Box) => box.width / box.height < 1
-
-/** Converte um ponto normalizado da imagem para px na tela, respeitando o object-fit. */
-export function mapPoint([nx, ny]: [number, number], box: Box): [number, number] {
+/**
+ * Converte um ponto normalizado da imagem para px na área das fotos, com object-fit: cover.
+ * Quando a área é mais estreita que a foto, o recorte horizontal segue o foco do quadro
+ * (o mesmo valor usado em object-position).
+ */
+export function mapPoint([nx, ny]: [number, number], box: Box, focus = 0.5): [number, number] {
   const wide = box.width / box.height > FRAME_RATIO
-  const cover = !fitsContain(box)
-  const w = cover === wide ? box.width : box.height * FRAME_RATIO
-  const h = cover === wide ? box.width / FRAME_RATIO : box.height
-  return [(box.width - w) / 2 + nx * w, (box.height - h) / 2 + ny * h]
+  const w = wide ? box.width : box.height * FRAME_RATIO
+  const h = wide ? box.width / FRAME_RATIO : box.height
+  return [(box.width - w) * focus + nx * w, (box.height - h) / 2 + ny * h]
 }
 
 function apertureOnScreen(box: Box) {
-  const points = DOOR_APERTURE.map((p) => mapPoint(p, box))
+  const points = DOOR_APERTURE.map((p) => mapPoint(p, box, DOOR_FOCUS))
   const cx = points.reduce((s, p) => s + p[0], 0) / points.length
   const cy = points.reduce((s, p) => s + p[1], 0) / points.length
   return { points, cx, cy }
 }
+
+export type Anchor = { door: Door; focus: number }
 
 /**
  * Aproximação entre dois quadros: os dois escalam e se deslocam juntos para que a porta ocupe
  * o mesmo lugar e o mesmo tamanho nos dois durante toda a troca, como um único movimento de câmera.
  * O zoom do par é a razão entre as alturas da porta; a escala anda em progressão geométrica.
  */
-export function dollyPair(box: Box, from: Door, to: Door, t: number) {
-  const z = to[2] / from[2]
+export function dollyPair(box: Box, from: Anchor, to: Anchor, t: number) {
+  const z = to.door[2] / from.door[2]
   const e = easeInOut(clamp01(t))
-  const [ax, ay] = mapPoint([from[0], from[1]], box)
-  const [bx, by] = mapPoint([to[0], to[1]], box)
+  const [ax, ay] = mapPoint([from.door[0], from.door[1]], box, from.focus)
+  const [bx, by] = mapPoint([to.door[0], to.door[1]], box, to.focus)
   const dx = mix(ax, bx, e)
   const dy = mix(ay, by, e)
   const sOut = z ** e
@@ -60,10 +66,10 @@ const HOUSE = { x: 0.6, y: 0.62 }
 
 export const openness = (p: number) => easeInOut(phase(p, INTRO))
 
-export function frameClip(slot: Slot, p: number) {
+export function frameClip(slot: Slot, box: Box, p: number) {
   const k = 1 - openness(p)
   if (k <= 0) return 'none'
-  return `inset(${slot.top * k}px ${(slot.width - slot.right) * k}px ${(slot.height - slot.bottom) * k}px ${slot.left * k}px round ${16 * k}px)`
+  return `inset(${slot.top * k}px ${(box.width - slot.right) * k}px ${(box.height - slot.bottom) * k}px ${slot.left * k}px round ${16 * k}px)`
 }
 
 export function cameraAt(slot: Slot | null, box: Box, p: number) {
@@ -94,7 +100,7 @@ export function cameraAt(slot: Slot | null, box: Box, p: number) {
 }
 
 /**
- * Recorte da camada de fotos: um retângulo com o vão da porta vazado (evenodd).
+ * Recorte da abertura inteira: um retângulo com o vão da porta vazado (evenodd).
  * O vão nasce no centro da passagem, ocupa a abertura e depois se expande além da tela.
  */
 export function revealClip(box: Box, p: number) {
@@ -102,24 +108,33 @@ export function revealClip(box: Box, p: number) {
   const { points, cx, cy } = apertureOnScreen(box)
   const k =
     p < REVEAL_OPEN[1] ? easeOut(phase(p, REVEAL_OPEN)) : dollyScale(p) * (1 + 14 * easeIn(phase(p, REVEAL_EXPAND)))
-  const hole = points.map(([x, y]) => `${cx + (x - cx) * k}px ${cy + (y - cy) * k}px`)
-  const { width: w, height: h } = box
+  const hole = points.map(([x, y]) => `${box.left + cx + (x - cx) * k}px ${box.top + cy + (y - cy) * k}px`)
+  const { outerWidth: w, outerHeight: h } = box
   return `polygon(evenodd, 0px 0px, ${w}px 0px, ${w}px ${h}px, 0px ${h}px, 0px 0px, ${hole.join(', ')}, ${hole[0]})`
 }
 
-export function measureSlot(overlay: HTMLElement, copy: HTMLElement): Slot {
-  const width = overlay.clientWidth
-  const height = overlay.clientHeight
+export function measureBox(overlay: HTMLElement, visual: HTMLElement): Box {
+  return {
+    width: visual.clientWidth,
+    height: visual.clientHeight,
+    left: visual.offsetLeft,
+    top: visual.offsetTop,
+    outerWidth: overlay.clientWidth,
+    outerHeight: overlay.clientHeight,
+  }
+}
+
+/** Moldura medida a partir da grade: começa após a coluna de texto. Só em telas largas. */
+export function measureSlot(box: Box, copy: HTMLElement): Slot | null {
+  if (box.width / box.height < 1.2) return null
   const style = getComputedStyle(copy)
   const contentLeft = copy.offsetLeft + parseFloat(style.paddingLeft)
   const contentRight = copy.offsetLeft + copy.offsetWidth - parseFloat(style.paddingRight)
-  const top = Math.max(96, height * 0.13)
+  const top = Math.max(96, box.height * 0.13)
   return {
-    width,
-    height,
     left: contentLeft + (contentRight - contentLeft) * 0.46,
     right: contentRight,
     top,
-    bottom: height - Math.max(88, height * 0.12),
+    bottom: box.height - Math.max(88, box.height * 0.12),
   }
 }

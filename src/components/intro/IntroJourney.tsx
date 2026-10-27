@@ -15,12 +15,17 @@ import { FRAMES, INTRO, REVEAL_EXPAND, REVEAL_OPEN, frameAt, type Frame } from '
 import { useIntro } from '../../lib/intro'
 import { frameSrc, frameSrcSet } from '../../lib/media'
 import { useSaved } from '../../lib/saved'
-import { cameraAt, dollyPair, frameClip, measureSlot, revealClip, type Box, type Slot } from './geometry'
+import { cameraAt, dollyPair, frameClip, measureBox, measureSlot, revealClip, type Box, type Slot } from './geometry'
 import { JourneyStatus } from './JourneyStatus'
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
 /** Reprodução por ação: cerca de 2 s por quadro; pode ser pausada ou pulada a qualquer momento. */
 const PLAY_SECONDS = 36
+/** Sem a primeira foto nesse tempo, o site segue sem a jornada. */
+const MEDIA_TIMEOUT = 10000
+/** Quadros montados ao redor do atual: poupa memória em celulares e tablets. */
+const WINDOW_BEHIND = 1
+const WINDOW_AHEAD = 2
 
 export function IntroJourney() {
   const { status } = useIntro()
@@ -32,13 +37,21 @@ function Journey({ mode }: { mode: 'scrub' | 'play' }) {
   const { complete, play } = useIntro()
   const { notify } = useSaved()
   const overlayRef = useRef<HTMLDivElement>(null)
+  const visualRef = useRef<HTMLDivElement>(null)
   const copyRef = useRef<HTMLDivElement>(null)
   const done = useRef(false)
 
   const progress = useMotionValue(mode === 'scrub' ? 0 : INTRO[1])
-  const box = useMotionValue<Box>({ width: window.innerWidth, height: window.innerHeight })
+  const box = useMotionValue<Box>({
+    width: window.innerWidth,
+    height: window.innerHeight,
+    left: 0,
+    top: 0,
+    outerWidth: window.innerWidth,
+    outerHeight: window.innerHeight,
+  })
   const slot = useMotionValue<Slot | null>(null)
-  const [frame, setFrame] = useState({ index: 0, direction: 1 })
+  const [frame, setFrame] = useState({ index: mode === 'scrub' ? 0 : frameAt(INTRO[1]), direction: 1 })
   const [ready, setReady] = useState(false)
   const [paused, setPaused] = useState(false)
   const playback = useRef<AnimationPlaybackControls | null>(null)
@@ -48,6 +61,12 @@ function Journey({ mode }: { mode: 'scrub' | 'play' }) {
     done.current = true
     playback.current?.stop()
     complete({ focusContent })
+  }
+
+  const failMedia = () => {
+    if (done.current) return
+    notify(MESSAGES.mediaUnavailable)
+    finish()
   }
 
   // Scrub: o scroll nativo da página (o espaçador) conduz a jornada, com uma mola leve.
@@ -70,18 +89,41 @@ function Journey({ mode }: { mode: 'scrub' | 'play' }) {
     return () => playback.current?.stop()
   }, [mode, progress])
 
-  // Tamanho da tela e moldura medida a partir da grade.
+  // Área das fotos e moldura, medidas a partir do layout real.
   useLayoutEffect(() => {
     const overlay = overlayRef.current!
+    const visual = visualRef.current!
     const update = () => {
-      box.set({ width: overlay.clientWidth, height: overlay.clientHeight })
-      slot.set(mode === 'scrub' && copyRef.current ? measureSlot(overlay, copyRef.current) : null)
+      const b = measureBox(overlay, visual)
+      box.set(b)
+      slot.set(mode === 'scrub' && copyRef.current ? measureSlot(b, copyRef.current) : null)
     }
     update()
     const observer = new ResizeObserver(update)
     observer.observe(overlay)
+    observer.observe(visual)
     return () => observer.disconnect()
   }, [mode, box, slot])
+
+  // A primeira foto precisa chegar; depois o resto é baixado em segundo plano, sem decodificar.
+  useEffect(() => {
+    if (ready) {
+      // Mesmo srcset/sizes das camadas: o navegador baixa exatamente o arquivo que vai usar.
+      const images = FRAMES.slice(1).map((f) => {
+        const img = new Image()
+        img.decoding = 'async'
+        img.sizes = '100vw'
+        img.srcset = frameSrcSet(f.file)
+        img.src = frameSrc(f.file, 1920)
+        return img
+      })
+      return () => images.forEach((img) => img.removeAttribute('srcset'))
+    }
+    const timer = window.setTimeout(failMedia, MEDIA_TIMEOUT)
+    return () => window.clearTimeout(timer)
+    // failMedia só lê refs e funções estáveis do contexto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready])
 
   // Esc, ou o foco chegando ao conteúdo pelo teclado, encerram a introdução.
   useEffect(() => {
@@ -104,7 +146,7 @@ function Journey({ mode }: { mode: 'scrub' | 'play' }) {
 
   const visualClip = useTransform(() => {
     const s = slot.get()
-    return s ? frameClip(s, progress.get()) : 'none'
+    return s ? frameClip(s, box.get(), progress.get()) : 'none'
   })
   const camera = useTransform(() => cameraAt(slot.get(), box.get(), progress.get()))
   const hole = useTransform(() => revealClip(box.get(), progress.get()))
@@ -126,6 +168,8 @@ function Journey({ mode }: { mode: 'scrub' | 'play' }) {
     setPaused(!paused)
   }
 
+  const inWindow = (i: number) => i === 0 || (ready && i >= frame.index - WINDOW_BEHIND && i <= frame.index + WINDOW_AHEAD)
+
   return (
     <>
       {mode === 'scrub' && <div className="journey-spacer" aria-hidden="true" />}
@@ -136,10 +180,15 @@ function Journey({ mode }: { mode: 'scrub' | 'play' }) {
         role="region"
         aria-label="Introdução visual: a casa é construída e a porta se abre para o conteúdo"
       >
-        <motion.div className="journey__visual" style={{ clipPath: visualClip, opacity: photoOpacity }} aria-hidden="true">
+        <motion.div
+          ref={visualRef}
+          className="journey__visual"
+          style={{ clipPath: visualClip, opacity: photoOpacity }}
+          aria-hidden="true"
+        >
           <motion.div className="journey__stage" style={{ transform: camera }}>
             {FRAMES.map((f, i) =>
-              i === 0 || ready ? (
+              inWindow(i) ? (
                 <JourneyLayer
                   key={f.file}
                   frame={f}
@@ -149,10 +198,7 @@ function Journey({ mode }: { mode: 'scrub' | 'play' }) {
                   box={box}
                   eager={i === 0}
                   onLoad={i === 0 ? () => window.setTimeout(() => setReady(true), 150) : undefined}
-                  onError={() => {
-                    notify(MESSAGES.mediaUnavailable)
-                    finish()
-                  }}
+                  onError={i === 0 ? failMedia : undefined}
                 />
               ) : null,
             )}
@@ -219,7 +265,7 @@ type LayerProps = {
   box: MotionValue<Box>
   eager: boolean
   onLoad?: () => void
-  onError: () => void
+  onError?: () => void
 }
 
 const smoothstep = (a: number, b: number, v: number) => {
@@ -227,11 +273,16 @@ const smoothstep = (a: number, b: number, v: number) => {
   return t * t * (3 - 2 * t)
 }
 
+const anchor = (f?: Frame) => (f?.door ? { door: f.door, focus: f.focus } : null)
+
 function JourneyLayer({ frame, prev, next, progress, box, eager, onLoad, onError }: LayerProps) {
   const tIn = useTransform(progress, frame.range ?? [-2, -1], [0, 1])
   const tOut = useTransform(progress, next?.range ?? [2, 3], [0, 1])
-  const dollyIn = frame.reveal === 'dolly' && prev?.door && frame.door ? [prev.door, frame.door] as const : null
-  const dollyOut = next?.reveal === 'dolly' && frame.door && next.door ? [frame.door, next.door] as const : null
+  const self = anchor(frame)
+  const from = anchor(prev)
+  const to = anchor(next)
+  const dollyIn = frame.reveal === 'dolly' && from && self ? ([from, self] as const) : null
+  const dollyOut = next?.reveal === 'dolly' && self && to ? ([self, to] as const) : null
 
   // Na aproximação o quadro que chega aparece no meio do movimento, já alinhado pela porta.
   const opacity = useTransform(() =>
@@ -265,6 +316,7 @@ function JourneyLayer({ frame, prev, next, progress, box, eager, onLoad, onError
         opacity,
         transform,
         visibility,
+        objectPosition: `${frame.focus * 100}% 50%`,
         ...(frame.reveal === 'rise' ? ({ '--reveal': reveal } as object) : {}),
         ...(dollyIn ? ({ '--feather': feather } as object) : {}),
       }}

@@ -1622,8 +1622,10 @@ figcaption {
 
 /* ---------- Jornada de abertura ---------- */
 
-/* ~37svh de scroll por quadro: 70% para a mudança e 30% com a etapa parada. */
+/* ~37svh de scroll por quadro: 70% para a mudança e 30% com a etapa parada.
+   vh antes de svh: navegadores sem svh ainda têm onde rolar. */
 .journey-spacer {
+  height: 900vh;
   height: 900svh;
 }
 
@@ -1669,12 +1671,6 @@ figcaption {
     linear-gradient(to right, transparent 0%, #000 var(--feather), #000 calc(100% - var(--feather)), transparent 100%),
     linear-gradient(to bottom, transparent 0%, #000 var(--feather), #000 calc(100% - var(--feather)), transparent 100%);
   -webkit-mask-composite: source-in;
-}
-/* Retrato: o quadro inteiro aparece (o vão da porta é calculado igual, em geometry.ts). */
-@media (max-aspect-ratio: 1/1) {
-  .journey__frame {
-    object-fit: contain;
-  }
 }
 .journey__frame--rise {
   --reveal: 100%;
@@ -1800,5 +1796,52 @@ figcaption {
   }
   .journey__controls {
     justify-content: space-between;
+  }
+}
+
+/* Celular e tablet em pé: as fotos ocupam uma faixa entre o cabeçalho e a barra de status,
+   recortadas no foco de cada quadro (geometry.ts usa a mesma regra para a porta). */
+@media (max-aspect-ratio: 1/1) {
+  .journey {
+    grid-template-rows: var(--header-h) 1fr auto;
+  }
+  .journey__visual {
+    position: relative;
+    inset: auto;
+    grid-row: 2;
+    grid-column: 1;
+  }
+  .journey__scrim {
+    background:
+      linear-gradient(180deg, rgb(var(--veil) / 0.35) 0%, transparent 16%),
+      linear-gradient(0deg, rgb(var(--veil) / 0.92) 0%, rgb(var(--veil) / 0.6) 38%, transparent 70%);
+  }
+  .journey__copy {
+    grid-row: 2;
+    grid-column: 1;
+    align-self: end;
+    padding-top: 0;
+    padding-bottom: 20px;
+  }
+  .journey__copy > *,
+  .journey__copy h2 {
+    max-width: none;
+  }
+  .journey__copy h2 {
+    font-size: clamp(1.875rem, 8.4vw, 2.75rem);
+  }
+  .journey__lede {
+    margin-top: 12px;
+    font-size: var(--text-md);
+  }
+  .journey__copy .actions {
+    margin-top: 20px;
+  }
+  .journey__hint {
+    margin-top: 8px;
+  }
+  .journey__bar {
+    grid-row: 3;
+    padding-top: 16px;
   }
 }

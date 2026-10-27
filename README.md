@@ -11,8 +11,6 @@ npm install
 npm run dev
 ```
 
-Em desenvolvimento, `?motion=force` na URL ignora `prefers-reduced-motion`, para testar a jornada em máquinas com animações desligadas no sistema.
-
 ```bash
 npm run build      # build em dist/
 npm run deploy     # build com base /verdura/ e publicação no branch gh-pages
@@ -29,10 +27,9 @@ Stack: React 19, TypeScript, Vite, React Router e Motion. Fonte: San Francisco n
 
 ## Jornada
 
-- **Desktop:** abertura com scroll nativo em 900svh, cerca de 37svh por quadro (70% de mudança, 30% parado) (obra, aproximação e porta), mais "Explorar o conteúdo", "Ver a construção" e "Ir direto ao conteúdo" desde o início. Esc, Tab para o conteúdo ou o fim do scroll concluem a introdução, que não volta durante a sessão.
-- **Celular:** o conteúdo abre direto, com a casa pronta e a ação "Ver a construção" (36 s, pode pausar ou pular).
-- **Movimento reduzido:** conteúdo direto, sem jornada nem download da sequência.
-- **Falha de mídia:** a introdução é concluída e o aviso "A experiência em movimento não está disponível agora" aparece.
+- **Todos os aparelhos:** a página inicial abre na jornada, guiada pelo scroll nativo em 900svh (cerca de 37svh por quadro: 70% de mudança, 30% parado). No desktop a casa começa numa moldura ao lado do texto; no celular em pé, as fotos ocupam uma faixa recortada no foco de cada quadro. "Explorar o conteúdo", "Ver a construção" (36 s) e "Ir direto ao conteúdo" ficam disponíveis desde o início; Esc, Tab para o conteúdo ou o fim do scroll concluem a introdução.
+- **Movimento reduzido:** por decisão do projeto, a jornada roda mesmo com "Reduzir movimento" ativo no sistema.
+- **Robustez:** recarregar sempre abre no início; erros de renderização caem num limite de erro (a abertura é descartada e o site segue); sem a primeira foto em 10 s, o aviso "A experiência em movimento não está disponível agora" aparece e o site segue; só os quadros próximos ficam montados, para poupar memória.
 
 ## Assets
 

@@ -25,7 +25,12 @@ export type Frame = {
   reveal?: Reveal
   range?: [number, number]
   door?: Door
+  /** Centro horizontal do recorte quando a tela é mais estreita que a foto (celular em pé). */
+  focus: number
 }
+
+/** Na obra a câmera é fixa: todos os quadros recortam em torno da casa. */
+const HOUSE_FOCUS = 0.62
 
 export const GROUPS = [
   'Preparação e fundações',
@@ -38,23 +43,23 @@ export const GROUPS = [
 ]
 
 const SEQUENCE: Omit<Frame, 'range'>[] = [
-  { file: '01-terreno', label: 'Terreno', note: 'Lote preparado, valas abertas e obra marcada.', group: 0 },
-  { file: '02-fundacoes', label: 'Fundações', note: 'Sapatas e vigas baldrame com as armações.', group: 0, reveal: 'rise' },
-  { file: '03-base', label: 'Base', note: 'Laje térrea formada dentro do mesmo perímetro.', group: 1, reveal: 'rise' },
-  { file: '04-paredes-baixas', label: 'Primeiras fiadas', note: 'Paredes baixas; entrada e garagem seguem livres.', group: 1, reveal: 'rise' },
-  { file: '05-terreo-laje', label: 'Térreo e laje', note: 'Paredes do térreo e laje intermediária apoiada.', group: 2, reveal: 'rise' },
-  { file: '06-paredes-superiores', label: 'Paredes superiores', note: 'Primeiras fiadas do pavimento de cima.', group: 2, reveal: 'rise' },
-  { file: '07-paredes-completas', label: 'Pavimento superior', note: 'Paredes completas, topo ainda aberto.', group: 2, reveal: 'rise' },
-  { file: '08-telhado', label: 'Cobertura', note: 'Laje de cobertura formada sobre os apoios.', group: 3, reveal: 'rise' },
-  { file: '09-acabamento-parcial', label: 'Acabamento parcial', note: 'Reboco, primeiras esquadrias e vidros.', group: 4, reveal: 'fade' },
-  { file: '10-acabamento-avancado', label: 'Acabamento avançado', note: 'Pedra, madeira, portas e guarda-corpo.', group: 4, reveal: 'fade' },
-  { file: '11-casa-pronta', label: 'Casa pronta', note: 'Calçamento, paisagismo e iluminação.', group: 5, reveal: 'fade', door: [0.6, 0.616, 0.176] },
-  { file: '12-entrada-fachada', label: 'Chegada', note: 'A fachada cresce enquanto a câmera se aproxima.', group: 6, reveal: 'dolly', door: [0.502, 0.539, 0.239] },
-  { file: '13-entrada-escada', label: 'Escada', note: 'O percurso iluminado conduz até a porta.', group: 6, reveal: 'dolly', door: [0.642, 0.468, 0.428] },
-  { file: '14-entrada-degraus', label: 'Degraus', note: 'A porta passa a ocupar o centro do quadro.', group: 6, reveal: 'dolly', door: [0.534, 0.438, 0.622] },
-  { file: '15-porta-fechada', label: 'Porta', note: 'Madeira, vidros laterais e luz de entrada.', group: 6, reveal: 'dolly', door: [0.502, 0.474, 0.856] },
-  { file: '16-porta-entreaberta', label: 'Porta entreaberta', note: 'Só a folha gira; a câmera fica parada.', group: 6, reveal: 'door' },
-  { file: '17-porta-aberta', label: 'Porta aberta', note: 'Entre para conhecer os detalhes.', group: 6, reveal: 'door' },
+  { file: '01-terreno', label: 'Terreno', note: 'Lote preparado, valas abertas e obra marcada.', group: 0, focus: HOUSE_FOCUS },
+  { file: '02-fundacoes', label: 'Fundações', note: 'Sapatas e vigas baldrame com as armações.', group: 0, reveal: 'rise', focus: HOUSE_FOCUS },
+  { file: '03-base', label: 'Base', note: 'Laje térrea formada dentro do mesmo perímetro.', group: 1, reveal: 'rise', focus: HOUSE_FOCUS },
+  { file: '04-paredes-baixas', label: 'Primeiras fiadas', note: 'Paredes baixas; entrada e garagem seguem livres.', group: 1, reveal: 'rise', focus: HOUSE_FOCUS },
+  { file: '05-terreo-laje', label: 'Térreo e laje', note: 'Paredes do térreo e laje intermediária apoiada.', group: 2, reveal: 'rise', focus: HOUSE_FOCUS },
+  { file: '06-paredes-superiores', label: 'Paredes superiores', note: 'Primeiras fiadas do pavimento de cima.', group: 2, reveal: 'rise', focus: HOUSE_FOCUS },
+  { file: '07-paredes-completas', label: 'Pavimento superior', note: 'Paredes completas, topo ainda aberto.', group: 2, reveal: 'rise', focus: HOUSE_FOCUS },
+  { file: '08-telhado', label: 'Cobertura', note: 'Laje de cobertura formada sobre os apoios.', group: 3, reveal: 'rise', focus: HOUSE_FOCUS },
+  { file: '09-acabamento-parcial', label: 'Acabamento parcial', note: 'Reboco, primeiras esquadrias e vidros.', group: 4, reveal: 'fade', focus: HOUSE_FOCUS },
+  { file: '10-acabamento-avancado', label: 'Acabamento avançado', note: 'Pedra, madeira, portas e guarda-corpo.', group: 4, reveal: 'fade', focus: HOUSE_FOCUS },
+  { file: '11-casa-pronta', label: 'Casa pronta', note: 'Calçamento, paisagismo e iluminação.', group: 5, reveal: 'fade', door: [0.6, 0.616, 0.176], focus: HOUSE_FOCUS },
+  { file: '12-entrada-fachada', label: 'Chegada', note: 'A fachada cresce enquanto a câmera se aproxima.', group: 6, reveal: 'dolly', door: [0.502, 0.539, 0.239], focus: 0.502 },
+  { file: '13-entrada-escada', label: 'Escada', note: 'O percurso iluminado conduz até a porta.', group: 6, reveal: 'dolly', door: [0.642, 0.468, 0.428], focus: 0.642 },
+  { file: '14-entrada-degraus', label: 'Degraus', note: 'A porta passa a ocupar o centro do quadro.', group: 6, reveal: 'dolly', door: [0.534, 0.438, 0.622], focus: 0.534 },
+  { file: '15-porta-fechada', label: 'Porta', note: 'Madeira, vidros laterais e luz de entrada.', group: 6, reveal: 'dolly', door: [0.502, 0.474, 0.856], focus: 0.52 },
+  { file: '16-porta-entreaberta', label: 'Porta entreaberta', note: 'Só a folha gira; a câmera fica parada.', group: 6, reveal: 'door', focus: 0.52 },
+  { file: '17-porta-aberta', label: 'Porta aberta', note: 'Entre para conhecer os detalhes.', group: 6, reveal: 'door', focus: 0.52 },
 ]
 
 const step = (JOURNEY[1] - JOURNEY[0]) / (SEQUENCE.length - 1)
@@ -89,6 +94,8 @@ export function frameAt(value: number) {
  * Vão livre da porta aberta no quadro 17, em coordenadas normalizadas da imagem
  * (borda da folha à esquerda, caixilho do vidro lateral à direita, verga e soleira).
  */
+export const DOOR_FOCUS = 0.52
+
 export const DOOR_APERTURE: [number, number][] = [
   [0.431, 0.074],
   [0.612, 0.072],

@@ -217,7 +217,7 @@ export const FAQ = [
   },
   {
     q: 'Preciso assistir à animação para ler o conteúdo?',
-    a: 'Não. Use “Ir direto ao conteúdo” a qualquer momento. A versão com movimento reduzido abre o conteúdo diretamente.',
+    a: 'Não. Use “Explorar o conteúdo” ou “Ir direto ao conteúdo” a qualquer momento, ou a tecla Esc. A animação é uma abertura opcional.',
   },
   {
     q: 'Como funcionam os itens salvos?',
