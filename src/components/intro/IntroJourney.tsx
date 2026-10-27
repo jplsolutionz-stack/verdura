@@ -19,8 +19,8 @@ import { cameraAt, frameClip, measureSlot, revealClip, type Box, type Slot } fro
 import { JourneyStatus } from './JourneyStatus'
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
-/** Reprodução por ação: obra, aproximação e porta em ritmo legível, sem virar espera obrigatória. */
-const PLAY_SECONDS = 16
+/** Reprodução por ação: cerca de 1,5 s por quadro; pode ser pausada ou pulada a qualquer momento. */
+const PLAY_SECONDS = 28
 
 export function IntroJourney() {
   const { status } = useIntro()
@@ -52,7 +52,7 @@ function Journey({ mode }: { mode: 'scrub' | 'play' }) {
 
   // Scrub: o scroll nativo da página (o espaçador) conduz a jornada, com uma mola leve.
   const { scrollYProgress } = useScroll()
-  const smooth = useSpring(scrollYProgress, { stiffness: 170, damping: 34, restDelta: 0.0005 })
+  const smooth = useSpring(scrollYProgress, { stiffness: 110, damping: 30, restDelta: 0.0002 })
   useMotionValueEvent(smooth, 'change', (v) => {
     if (mode === 'scrub') progress.set(v)
   })

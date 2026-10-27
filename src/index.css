@@ -1622,8 +1622,9 @@ figcaption {
 
 /* ---------- Jornada de abertura ---------- */
 
+/* ~23svh de scroll por quadro: a obra avança alguns giros de roda por etapa. */
 .journey-spacer {
-  height: 180svh;
+  height: 600svh;
 }
 
 .journey {

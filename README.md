@@ -29,8 +29,8 @@ Stack: React 19, TypeScript, Vite, React Router e Motion. Fonte: San Francisco n
 
 ## Jornada
 
-- **Desktop:** abertura com scroll nativo em 180svh (obra, aproximação e porta), mais "Explorar o conteúdo", "Ver a construção" e "Ir direto ao conteúdo" desde o início. Esc, Tab para o conteúdo ou o fim do scroll concluem a introdução, que não volta durante a sessão.
-- **Celular:** o conteúdo abre direto, com a casa pronta e a ação "Ver a construção" (16 s, pode pausar ou pular).
+- **Desktop:** abertura com scroll nativo em 600svh, cerca de 23svh por quadro (obra, aproximação e porta), mais "Explorar o conteúdo", "Ver a construção" e "Ir direto ao conteúdo" desde o início. Esc, Tab para o conteúdo ou o fim do scroll concluem a introdução, que não volta durante a sessão.
+- **Celular:** o conteúdo abre direto, com a casa pronta e a ação "Ver a construção" (28 s, pode pausar ou pular).
 - **Movimento reduzido:** conteúdo direto, sem jornada nem download da sequência.
 - **Falha de mídia:** a introdução é concluída e o aviso "A experiência em movimento não está disponível agora" aparece.
 
