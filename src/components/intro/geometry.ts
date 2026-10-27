@@ -1,4 +1,4 @@
-import { DOOR_APERTURE, INTRO, REVEAL_EXPAND, REVEAL_OPEN } from '../../data/journey'
+import { DOOR_APERTURE, INTRO, REVEAL_EXPAND, REVEAL_OPEN, type Door } from '../../data/journey'
 import { FRAME_RATIO } from '../../lib/media'
 
 export type Box = { width: number; height: number }
@@ -32,6 +32,26 @@ function apertureOnScreen(box: Box) {
   return { points, cx, cy }
 }
 
+/**
+ * Aproximação entre dois quadros: os dois escalam e se deslocam juntos para que a porta ocupe
+ * o mesmo lugar e o mesmo tamanho nos dois durante toda a troca, como um único movimento de câmera.
+ * O zoom do par é a razão entre as alturas da porta; a escala anda em progressão geométrica.
+ */
+export function dollyPair(box: Box, from: Door, to: Door, t: number) {
+  const z = to[2] / from[2]
+  const e = easeInOut(clamp01(t))
+  const [ax, ay] = mapPoint([from[0], from[1]], box)
+  const [bx, by] = mapPoint([to[0], to[1]], box)
+  const dx = mix(ax, bx, e)
+  const dy = mix(ay, by, e)
+  const sOut = z ** e
+  const sIn = z ** (e - 1)
+  return {
+    out: `translate(${dx - sOut * ax}px, ${dy - sOut * ay}px) scale(${sOut})`,
+    in: `translate(${dx - sIn * bx}px, ${dy - sIn * by}px) scale(${sIn})`,
+  }
+}
+
 /** Atravessar a porta: a câmera avança em direção ao vão enquanto ele se abre para o site. */
 const dollyScale = (p: number) => 1 + 0.4 * easeInOut(phase(p, REVEAL_EXPAND))
 
@@ -48,13 +68,24 @@ export function frameClip(slot: Slot, p: number) {
 
 export function cameraAt(slot: Slot | null, box: Box, p: number) {
   if (slot && p < INTRO[1]) {
+    const { width: W, height: H } = box
     const frameW = slot.right - slot.left
     const frameH = slot.bottom - slot.top
-    const scale = Math.max(frameW / box.width, frameH / box.height) * 1.1
-    const x = Math.min(slot.left, Math.max(slot.right - scale * box.width, (slot.left + slot.right) / 2 - scale * HOUSE.x * box.width))
-    const y = Math.min(slot.top, Math.max(slot.bottom - scale * box.height, (slot.top + slot.bottom) / 2 - scale * HOUSE.y * box.height))
+    const scale = Math.max(frameW / W, frameH / H) * 1.1
+    const x = Math.min(slot.left, Math.max(slot.right - scale * W, (slot.left + slot.right) / 2 - scale * HOUSE.x * W))
+    const y = Math.min(slot.top, Math.max(slot.bottom - scale * H, (slot.top + slot.bottom) / 2 - scale * HOUSE.y * H))
     const t = openness(p)
-    return `translate(${mix(x, 0, t)}px, ${mix(y, 0, t)}px) scale(${mix(scale, 1, t)})`
+    // Recorte atual da moldura (o mesmo de frameClip): a foto precisa cobri-lo em todo instante,
+    // senão aparecem faixas vazias enquanto a moldura abre.
+    const k = 1 - t
+    const left = slot.left * k
+    const top = slot.top * k
+    const right = W - (W - slot.right) * k
+    const bottom = H - (H - slot.bottom) * k
+    const s = Math.max(mix(scale, 1, t), (right - left) / W, (bottom - top) / H)
+    const tx = Math.min(left, Math.max(right - s * W, mix(x, 0, t)))
+    const ty = Math.min(top, Math.max(bottom - s * H, mix(y, 0, t)))
+    return `translate(${tx}px, ${ty}px) scale(${s})`
   }
   if (p < REVEAL_EXPAND[0]) return 'none'
   const { cx, cy } = apertureOnScreen(box)

@@ -15,12 +15,12 @@ import { FRAMES, INTRO, REVEAL_EXPAND, REVEAL_OPEN, frameAt, type Frame } from '
 import { useIntro } from '../../lib/intro'
 import { frameSrc, frameSrcSet } from '../../lib/media'
 import { useSaved } from '../../lib/saved'
-import { cameraAt, frameClip, measureSlot, revealClip, type Box, type Slot } from './geometry'
+import { cameraAt, dollyPair, frameClip, measureSlot, revealClip, type Box, type Slot } from './geometry'
 import { JourneyStatus } from './JourneyStatus'
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
-/** Reprodução por ação: cerca de 1,5 s por quadro; pode ser pausada ou pulada a qualquer momento. */
-const PLAY_SECONDS = 28
+/** Reprodução por ação: cerca de 2 s por quadro; pode ser pausada ou pulada a qualquer momento. */
+const PLAY_SECONDS = 36
 
 export function IntroJourney() {
   const { status } = useIntro()
@@ -143,8 +143,10 @@ function Journey({ mode }: { mode: 'scrub' | 'play' }) {
                 <JourneyLayer
                   key={f.file}
                   frame={f}
+                  prev={FRAMES[i - 1]}
                   next={FRAMES[i + 1]}
                   progress={progress}
+                  box={box}
                   eager={i === 0}
                   onLoad={i === 0 ? () => window.setTimeout(() => setReady(true), 150) : undefined}
                   onError={() => {
@@ -211,32 +213,44 @@ function Journey({ mode }: { mode: 'scrub' | 'play' }) {
 
 type LayerProps = {
   frame: Frame
+  prev?: Frame
   next?: Frame
   progress: MotionValue<number>
+  box: MotionValue<Box>
   eager: boolean
   onLoad?: () => void
   onError: () => void
 }
 
-function JourneyLayer({ frame, next, progress, eager, onLoad, onError }: LayerProps) {
+const smoothstep = (a: number, b: number, v: number) => {
+  const t = Math.min(1, Math.max(0, (v - a) / (b - a)))
+  return t * t * (3 - 2 * t)
+}
+
+function JourneyLayer({ frame, prev, next, progress, box, eager, onLoad, onError }: LayerProps) {
   const tIn = useTransform(progress, frame.range ?? [-2, -1], [0, 1])
   const tOut = useTransform(progress, next?.range ?? [2, 3], [0, 1])
-  const dollyOut = next?.reveal === 'dolly'
+  const dollyIn = frame.reveal === 'dolly' && prev?.door && frame.door ? [prev.door, frame.door] as const : null
+  const dollyOut = next?.reveal === 'dolly' && frame.door && next.door ? [frame.door, next.door] as const : null
 
-  const opacity = useTransform(() => (frame.reveal && frame.reveal !== 'rise' ? tIn.get() : 1))
-  // Aproximação: o quadro que chega cresce até o lugar; o que sai continua avançando.
+  // Na aproximação o quadro que chega aparece no meio do movimento, já alinhado pela porta.
+  const opacity = useTransform(() =>
+    frame.reveal === 'dolly' ? smoothstep(0.15, 0.85, tIn.get()) : frame.reveal && frame.reveal !== 'rise' ? tIn.get() : 1,
+  )
   const transform = useTransform(() => {
-    const scaleIn = frame.reveal === 'dolly' ? 0.94 + 0.06 * tIn.get() : 1
-    const scaleOut = dollyOut ? 1 + 0.08 * tOut.get() : 1
-    return `scale(${scaleIn * scaleOut})`
+    if (dollyOut && tOut.get() > 0) return dollyPair(box.get(), dollyOut[0], dollyOut[1], tOut.get()).out
+    if (dollyIn && tIn.get() < 1) return dollyPair(box.get(), dollyIn[0], dollyIn[1], tIn.get()).in
+    return 'none'
   })
+  // Enquanto ainda é menor que a tela, o quadro que chega tem as bordas suavizadas.
+  const feather = useTransform(() => `${14 * (1 - tIn.get())}%`)
   const reveal = useTransform(() => `${-30 + 130 * tIn.get()}%`)
   // Só ficam visíveis as camadas que participam do momento atual.
   const visibility = useTransform(() => ((frame.range && tIn.get() <= 0) || tOut.get() >= 1 ? 'hidden' : 'visible'))
 
   return (
     <motion.img
-      className={`journey__frame${frame.reveal === 'rise' ? ' journey__frame--rise' : ''}`}
+      className={`journey__frame${frame.reveal === 'rise' ? ' journey__frame--rise' : ''}${dollyIn ? ' journey__frame--dolly' : ''}`}
       src={frameSrc(frame.file, 1920)}
       srcSet={frameSrcSet(frame.file)}
       sizes="100vw"
@@ -252,6 +266,7 @@ function JourneyLayer({ frame, next, progress, eager, onLoad, onError }: LayerPr
         transform,
         visibility,
         ...(frame.reveal === 'rise' ? ({ '--reveal': reveal } as object) : {}),
+        ...(dollyIn ? ({ '--feather': feather } as object) : {}),
       }}
     />
   )

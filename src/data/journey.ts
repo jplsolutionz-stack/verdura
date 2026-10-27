@@ -14,6 +14,9 @@ export const REVEAL_EXPAND: [number, number] = [0.88, 0.99]
 /** rise: sobe do chão (câmera fixa) · fade: muda no lugar · dolly: câmera avança · door: só a porta gira. */
 export type Reveal = 'rise' | 'fade' | 'dolly' | 'door'
 
+/** Folha da porta no quadro: centro x, centro y e altura, normalizados. Âncora da aproximação. */
+export type Door = [number, number, number]
+
 export type Frame = {
   file: string
   label: string
@@ -21,6 +24,7 @@ export type Frame = {
   group: number
   reveal?: Reveal
   range?: [number, number]
+  door?: Door
 }
 
 export const GROUPS = [
@@ -44,20 +48,24 @@ const SEQUENCE: Omit<Frame, 'range'>[] = [
   { file: '08-telhado', label: 'Cobertura', note: 'Laje de cobertura formada sobre os apoios.', group: 3, reveal: 'rise' },
   { file: '09-acabamento-parcial', label: 'Acabamento parcial', note: 'Reboco, primeiras esquadrias e vidros.', group: 4, reveal: 'fade' },
   { file: '10-acabamento-avancado', label: 'Acabamento avançado', note: 'Pedra, madeira, portas e guarda-corpo.', group: 4, reveal: 'fade' },
-  { file: '11-casa-pronta', label: 'Casa pronta', note: 'Calçamento, paisagismo e iluminação.', group: 5, reveal: 'fade' },
-  { file: '12-entrada-fachada', label: 'Chegada', note: 'A fachada cresce enquanto a câmera se aproxima.', group: 6, reveal: 'dolly' },
-  { file: '13-entrada-escada', label: 'Escada', note: 'O percurso iluminado conduz até a porta.', group: 6, reveal: 'dolly' },
-  { file: '14-entrada-degraus', label: 'Degraus', note: 'A porta passa a ocupar o centro do quadro.', group: 6, reveal: 'dolly' },
-  { file: '15-porta-fechada', label: 'Porta', note: 'Madeira, vidros laterais e luz de entrada.', group: 6, reveal: 'dolly' },
+  { file: '11-casa-pronta', label: 'Casa pronta', note: 'Calçamento, paisagismo e iluminação.', group: 5, reveal: 'fade', door: [0.6, 0.616, 0.176] },
+  { file: '12-entrada-fachada', label: 'Chegada', note: 'A fachada cresce enquanto a câmera se aproxima.', group: 6, reveal: 'dolly', door: [0.502, 0.539, 0.239] },
+  { file: '13-entrada-escada', label: 'Escada', note: 'O percurso iluminado conduz até a porta.', group: 6, reveal: 'dolly', door: [0.642, 0.468, 0.428] },
+  { file: '14-entrada-degraus', label: 'Degraus', note: 'A porta passa a ocupar o centro do quadro.', group: 6, reveal: 'dolly', door: [0.534, 0.438, 0.622] },
+  { file: '15-porta-fechada', label: 'Porta', note: 'Madeira, vidros laterais e luz de entrada.', group: 6, reveal: 'dolly', door: [0.502, 0.474, 0.856] },
   { file: '16-porta-entreaberta', label: 'Porta entreaberta', note: 'Só a folha gira; a câmera fica parada.', group: 6, reveal: 'door' },
   { file: '17-porta-aberta', label: 'Porta aberta', note: 'Entre para conhecer os detalhes.', group: 6, reveal: 'door' },
 ]
 
 const step = (JOURNEY[1] - JOURNEY[0]) / (SEQUENCE.length - 1)
+/** Parte de cada trecho em que o quadro muda; no resto a etapa fica parada para ser vista. */
+const CHANGE = 0.7
 
-export const FRAMES: Frame[] = SEQUENCE.map((frame, i) =>
-  i === 0 ? frame : { ...frame, range: [JOURNEY[0] + step * (i - 1), JOURNEY[0] + step * i] as [number, number] },
-)
+export const FRAMES: Frame[] = SEQUENCE.map((frame, i) => {
+  if (i === 0) return frame
+  const start = JOURNEY[0] + step * (i - 1)
+  return { ...frame, range: [start, start + step * CHANGE] as [number, number] }
+})
 
 /** Trecho do progresso de cada grupo, do primeiro ao último quadro dele. */
 export const GROUP_RANGES: [number, number][] = GROUPS.map((_, g) => {
