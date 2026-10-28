@@ -70,6 +70,7 @@ function ContentHero() {
               Entender a construção
             </a>
           </div>
+          <p className="notice notice--on-ink">{EDITORIAL_NOTICE}</p>
         </div>
         <figure className="content-hero__media">
           <Frame
@@ -114,7 +115,6 @@ function ContentHero() {
             ))}
           </ul>
         </form>
-        <p className="notice notice--on-ink">{EDITORIAL_NOTICE}</p>
       </div>
     </section>
   )
@@ -178,7 +178,7 @@ function ConstructionSection() {
   }
 
   return (
-    <section id="construcao" className="chapter chapter--sage" aria-labelledby="titulo-construcao">
+    <section id="construcao" className="chapter" aria-labelledby="titulo-construcao">
       <div className="container">
         <div className="section-head">
           <h2 id="titulo-construcao">Da primeira marcação aos últimos acabamentos.</h2>
@@ -264,7 +264,7 @@ function ConstructionSection() {
 
 function AmbientesSection() {
   return (
-    <section className="chapter" aria-labelledby="titulo-ambientes">
+    <section className="chapter chapter--sage" aria-labelledby="titulo-ambientes">
       <div className="container">
         <div className="section-head">
           <h2 id="titulo-ambientes">O projeto continua depois da fachada.</h2>
@@ -298,7 +298,7 @@ function AmbientesSection() {
 
 function MateriaisSection() {
   return (
-    <section className="chapter chapter--sage" aria-labelledby="titulo-materiais">
+    <section className="chapter" aria-labelledby="titulo-materiais">
       <div className="container materials">
         <div className="materials__media">
           <Frame
@@ -521,7 +521,7 @@ function GlossarySection() {
 
 function FaqSection() {
   return (
-    <section id="perguntas" className="chapter chapter--sage" aria-labelledby="titulo-faq">
+    <section id="perguntas" className="chapter" aria-labelledby="titulo-faq">
       <div className="container split">
         <div>
           <h2 id="titulo-faq">Perguntas frequentes</h2>

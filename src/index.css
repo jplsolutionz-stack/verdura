@@ -24,15 +24,17 @@
   --text-base: 1rem;
   --text-lg: 1.0625rem;
   --display-sm: clamp(1.375rem, 2.2vw, 1.75rem);
-  --display-md: clamp(1.875rem, 3.6vw, 3rem);
+  --display-md: clamp(2rem, 3.4vw, 2.875rem);
   --display-lg: clamp(2.375rem, 9vw, 3rem);
+  --measure: 62ch;
 
   /* Espaço e forma */
   --gutter: 20px;
-  --radius: 12px;
+  --radius: 14px;
   --radius-sm: 8px;
   --header-h: 72px;
-  --chapter: 64px;
+  --chapter: 72px;
+  --shadow: 0 24px 48px -28px rgb(16 43 35 / 0.45);
 
   /* Movimento */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -52,13 +54,13 @@
 @media (min-width: 768px) {
   :root {
     --gutter: 32px;
-    --chapter: 88px;
+    --chapter: 104px;
     --display-lg: clamp(3rem, 6vw, 3.75rem);
   }
 }
 @media (min-width: 1024px) {
   :root {
-    --chapter: 112px;
+    --chapter: 136px;
     --display-lg: clamp(3.5rem, 5vw, 5.25rem);
   }
 }
@@ -113,7 +115,8 @@ h1 {
 }
 h2 {
   font-size: var(--display-md);
-  line-height: 1.08;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
 }
 h3 {
   font-size: 1.25rem;
@@ -197,7 +200,7 @@ main:focus {
   font-size: var(--text-lg);
   line-height: 1.6;
   color: var(--muted);
-  max-width: 40rem;
+  max-width: var(--measure);
 }
 
 .badge {
@@ -508,16 +511,21 @@ select:focus-visible {
 
 /* ---------- Cabeçalho ---------- */
 
+/* Sobre os capítulos escuros o cabeçalho é só um véu; o fundo sólido só entra quando faz falta. */
 .site-header {
   position: fixed;
   inset: 0 0 auto;
   z-index: 50;
   color: var(--on-ink);
-  background: var(--ink);
+  background: rgb(var(--veil) / 0.72);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
   transition: background-color var(--dur-base) var(--ease-out);
 }
 .site-header[data-over-intro='true'] {
   background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .site-header__inner {
@@ -750,25 +758,55 @@ select:focus-visible {
   color: var(--on-ink);
 }
 
+/* Abertura de capítulo: título à esquerda, apoio à direita, uma linha fina acima. */
 .section-head {
   display: grid;
   gap: 16px;
-  max-width: 46rem;
-  margin-bottom: 48px;
+  padding-top: 24px;
+  margin-bottom: 56px;
+  border-top: 1px solid var(--line);
 }
 .section-head p {
   font-size: var(--text-lg);
   color: var(--muted);
+  max-width: var(--measure);
+}
+.chapter--ink .section-head {
+  border-top-color: var(--on-ink-faint);
+}
+@media (min-width: 1024px) {
+  .section-head {
+    grid-template-columns: 5fr 7fr;
+    column-gap: 64px;
+    align-items: start;
+  }
+  .section-head h2 {
+    grid-row: 1 / span 2;
+  }
+  .section-head .text-link {
+    justify-self: start;
+  }
 }
 
 .split {
   display: grid;
   gap: 32px;
 }
+.chapter .split {
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.chapter--ink .split {
+  border-top-color: var(--on-ink-faint);
+}
 @media (min-width: 1024px) {
   .split {
-    grid-template-columns: 4fr 7fr;
+    grid-template-columns: 5fr 7fr;
     gap: 64px;
+  }
+  .chapter .split > :first-child h2 {
+    position: sticky;
+    top: calc(var(--header-h) + 32px);
   }
 }
 .split--page h1 {
@@ -796,23 +834,34 @@ figcaption {
 
 /* ---------- Hero de conteúdo (o que a porta revela) ---------- */
 
+/* A foto conduz: ocupa a largura toda; texto e busca ficam sobre ela e abaixo dela. */
 .content-hero {
-  padding-top: calc(var(--header-h) + 40px);
-  padding-bottom: 48px;
+  padding-top: calc(var(--header-h) + 48px);
+  padding-bottom: 64px;
 }
 .content-hero__grid {
   display: grid;
-  gap: 32px;
-  align-items: center;
+  gap: 40px;
 }
 .content-hero__text .lede {
   margin-top: 20px;
+  color: var(--on-ink-muted);
+}
+/* No celular o aviso editorial vem depois da foto, onde não atrasa a chegada dela. */
+@media (max-width: 1023px) {
+  .content-hero__text {
+    display: contents;
+  }
+  .content-hero__text > .notice {
+    order: 2;
+  }
 }
 .content-hero__media img {
   width: 100%;
   border-radius: var(--radius);
   aspect-ratio: 16 / 9;
   object-fit: cover;
+  box-shadow: var(--shadow);
 }
 .content-hero__media figcaption {
   display: flex;
@@ -826,20 +875,28 @@ figcaption {
   color: var(--on-ink);
 }
 @media (min-width: 1024px) {
+  .content-hero {
+    padding-top: calc(var(--header-h) + 72px);
+  }
   .content-hero__grid {
     grid-template-columns: 5fr 7fr;
-    gap: 64px;
+    gap: 72px;
+    align-items: end;
+  }
+  .content-hero__media img {
+    aspect-ratio: 4 / 3;
   }
 }
 
 .search-panel {
   display: grid;
   gap: 10px;
-  margin-top: 40px;
-  padding: 20px;
+  margin-top: 56px;
+  padding: 20px 20px 16px;
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--ink);
+  box-shadow: var(--shadow);
 }
 .search-panel--plain {
   margin-top: 0;
@@ -880,27 +937,39 @@ figcaption {
 
 /* ---------- Cards ---------- */
 
+/* Cards sem caixa: a foto é o card, o texto respira em baixo sobre o próprio fundo do capítulo. */
 .project-card,
 .article-card {
   display: grid;
   grid-template-rows: auto 1fr;
+}
+.project-card__media,
+.article-card__media {
+  display: block;
   overflow: hidden;
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--sage);
 }
 .project-card__media img,
 .project-card__media .plan,
 .article-card__media img {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 3 / 2;
   object-fit: cover;
+  transition: transform 600ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .project-card:hover .project-card__media img,
+  .article-card:hover .article-card__media img {
+    transform: scale(1.03);
+  }
 }
 .project-card__body,
 .article-card__body {
   display: grid;
   gap: 10px;
   align-content: start;
-  padding: 20px 22px 18px;
+  padding: 18px 0 0;
 }
 .project-card__top {
   display: flex;
@@ -948,21 +1017,41 @@ figcaption {
 @media (min-width: 1024px) {
   .projects-feature {
     grid-template-columns: 7fr 5fr;
+    gap: 40px;
   }
-  /* O card grande acompanha a altura da coluna ao lado: a fotografia ocupa a sobra. */
-  .project-card--large {
-    grid-template-rows: 1fr auto;
+  .projects-feature__side {
+    gap: 40px;
   }
+  /* O card grande mantém a fachada inteira: 4:3, com o texto em duas colunas abaixo. */
   .project-card--large .project-card__media img {
-    height: 100%;
-    min-height: 100%;
+    aspect-ratio: 4 / 3;
+  }
+  .project-card--large .project-card__body {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 32px;
+  }
+  .project-card--large .project-card__top,
+  .project-card--large .project-card__title,
+  .project-card--large .meta-list {
+    grid-column: 1 / -1;
+  }
+  .project-card--large .project-card__summary {
+    grid-column: 1;
+    grid-row: 4 / span 2;
+  }
+  .project-card--large .project-card__observe {
+    grid-column: 2;
+  }
+  .project-card--large .text-link {
+    grid-column: 2;
+    align-self: start;
   }
 }
 
 .project-grid,
 .article-grid {
   display: grid;
-  gap: 24px;
+  gap: 40px 32px;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
 }
 
@@ -1046,6 +1135,7 @@ figcaption {
   border-radius: var(--radius);
   background: var(--ink);
   aspect-ratio: 16 / 9;
+  box-shadow: var(--shadow);
 }
 .stepper__image {
   grid-area: 1 / 1;
@@ -1116,6 +1206,14 @@ figcaption {
   aspect-ratio: 16 / 10;
   object-fit: cover;
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+/* Ambientes sem foto formam uma linha de três, separados por uma régua, não por caixas. */
+@media (min-width: 900px) {
+  .room:not(.room--media) {
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
 }
 .room--media .room__text {
   margin-top: 20px;
@@ -1152,6 +1250,7 @@ figcaption {
   aspect-ratio: 4 / 5;
   object-fit: cover;
   object-position: 42% 50%;
+  box-shadow: var(--shadow);
 }
 .materials__text {
   display: grid;
@@ -1167,6 +1266,10 @@ figcaption {
     position: sticky;
     top: calc(var(--header-h) + 32px);
     align-self: start;
+  }
+  .materials__media img {
+    aspect-ratio: 3 / 4;
+    max-height: calc(100vh - var(--header-h) - 64px);
   }
 }
 
@@ -1218,6 +1321,7 @@ figcaption {
   padding: 24px;
   border-radius: var(--radius);
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 @media (min-width: 1024px) {
   .compare {
@@ -1319,10 +1423,16 @@ figcaption {
 
 /* ---------- Fechamento e rodapé ---------- */
 
+.closing {
+  padding-block: calc(var(--chapter) * 1.3);
+}
 .closing .container {
   display: grid;
   gap: 20px;
   justify-items: start;
+}
+.closing h2 {
+  font-size: clamp(2.25rem, 4.4vw, 3.75rem);
 }
 .closing h2 {
   max-width: 22ch;
